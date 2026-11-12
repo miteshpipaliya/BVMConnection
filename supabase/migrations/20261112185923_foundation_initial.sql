@@ -52,10 +52,22 @@ create table public.admin_audit_logs(id uuid primary key default gen_random_uuid
 create table public.notification_preferences(user_id uuid primary key references public.profiles(id) on delete cascade,follow_requests boolean not null default true,messages boolean not null default true,community boolean not null default true,updated_at timestamptz not null default now());
 create table public.relationship_status(user_id uuid primary key references public.profiles(id) on delete cascade,status text,visibility text not null default 'private' check(visibility in ('private','followers','members')),updated_at timestamptz not null default now());
 create table public.consent_records(id uuid primary key default gen_random_uuid(),user_id uuid not null references public.profiles(id) on delete cascade,consent_type text not null,version text not null,granted_at timestamptz not null default now(),withdrawn_at timestamptz);
-create or replace function public.handle_new_user() returns trigger language plpgsql security definer set search_path=public as $$
+create or replace function public.handle_new_user() returns trigger language plpgsql security definer set search_path='' as $$
 begin insert into public.profiles(id,full_name,branch) values(new.id,coalesce(new.raw_user_meta_data->>'full_name',''),new.raw_user_meta_data->>'branch'); insert into public.notification_preferences(user_id) values(new.id); return new; end $$;
 create trigger on_auth_user_created after insert on auth.users for each row execute procedure public.handle_new_user();
-create or replace function public.is_blocked_between(a uuid,b uuid) returns boolean language sql stable security definer set search_path=public as $$ select exists(select 1 from public.blocked_users where (blocker_id=a and blocked_id=b) or (blocker_id=b and blocked_id=a)); $$;
+revoke all on function public.handle_new_user() from public, anon, authenticated;
+create or replace function public.is_blocked_between(a uuid,b uuid) returns boolean language sql stable security definer set search_path='' as $$ select (select auth.uid()) is not null and ((select auth.uid())=a or (select auth.uid())=b) and exists(select 1 from public.blocked_users where (blocker_id=a and blocked_id=b) or (blocker_id=b and blocked_id=a)); $$;
+revoke all on function public.is_blocked_between(uuid,uuid) from public, anon;
+grant execute on function public.is_blocked_between(uuid,uuid) to authenticated;
+-- SECURITY DEFINER membership lookup avoids recursive RLS on conversation_members.
+create or replace function public.is_conversation_member(p_conversation_id uuid) returns boolean language sql stable security definer set search_path='' as $$
+  select (select auth.uid()) is not null and exists (
+    select 1 from public.conversation_members m
+    where m.conversation_id = p_conversation_id and m.user_id = (select auth.uid())
+  );
+$$;
+revoke all on function public.is_conversation_member(uuid) from public, anon;
+grant execute on function public.is_conversation_member(uuid) to authenticated;
 -- Enable RLS on every user or administrative table.
 do $$ declare t text; begin foreach t in array array['profiles','posts','follows','follow_requests','blocked_users','post_likes','post_comments','bookmarks','blogs','conversations','conversation_members','messages','notifications','reports','admin_roles','admin_audit_logs','notification_preferences','relationship_status','consent_records'] loop execute format('alter table public.%I enable row level security',t); end loop; end $$;
 -- Profiles: only authenticated members see directory fields; private accounts are limited to owner/followers.
@@ -82,10 +94,10 @@ create policy "delete own comments" on public.post_comments for delete to authen
 create policy "bookmarks private" on public.bookmarks for all to authenticated using(user_id=auth.uid()) with check(user_id=auth.uid());
 create policy "blogs visible" on public.blogs for select to authenticated using(author_id=auth.uid() or (status='published' and not public.is_blocked_between(auth.uid(),author_id)));
 create policy "blog author writes" on public.blogs for all to authenticated using(author_id=auth.uid()) with check(author_id=auth.uid());
-create policy "conversation member read" on public.conversations for select to authenticated using(exists(select 1 from public.conversation_members m where m.conversation_id=id and m.user_id=auth.uid()));
-create policy "member list visible to members" on public.conversation_members for select to authenticated using(exists(select 1 from public.conversation_members m where m.conversation_id=conversation_id and m.user_id=auth.uid()));
-create policy "messages member read" on public.messages for select to authenticated using(exists(select 1 from public.conversation_members m where m.conversation_id=conversation_id and m.user_id=auth.uid()));
-create policy "send as member" on public.messages for insert to authenticated with check(sender_id=auth.uid() and exists(select 1 from public.conversation_members m where m.conversation_id=conversation_id and m.user_id=auth.uid()));
+create policy "conversation member read" on public.conversations for select to authenticated using(public.is_conversation_member(id));
+create policy "member list visible to members" on public.conversation_members for select to authenticated using(public.is_conversation_member(conversation_id));
+create policy "messages member read" on public.messages for select to authenticated using(public.is_conversation_member(conversation_id));
+create policy "send as member" on public.messages for insert to authenticated with check(sender_id=auth.uid() and public.is_conversation_member(conversation_id));
 create policy "notifications private" on public.notifications for select to authenticated using(user_id=auth.uid());
 create policy "notifications mark read" on public.notifications for update to authenticated using(user_id=auth.uid()) with check(user_id=auth.uid());
 create policy "submit report" on public.reports for insert to authenticated with check(reporter_id=auth.uid());
@@ -96,3 +108,4 @@ create policy "relationship owner edit" on public.relationship_status for all to
 create policy "consent private" on public.consent_records for select to authenticated using(user_id=auth.uid());
 create policy "consent own write" on public.consent_records for insert to authenticated with check(user_id=auth.uid());
 -- Admin role/audit tables are intentionally inaccessible from member clients. Add hardened admin RPCs after role provisioning.
+revoke all on public.admin_roles, public.admin_audit_logs from anon, authenticated;

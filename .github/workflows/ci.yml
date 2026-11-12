@@ -40,6 +40,27 @@ jobs:
       - name: Production build
         run: npm run build
 
+  database:
+    name: database
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+      - name: Start isolated Supabase stack
+        run: npx --yes supabase@3.1.0 start
+      - name: Lint database schema
+        run: npx --yes supabase@3.1.0 db lint --schema public --fail-on error
+      - name: Run database RLS tests
+        run: npx --yes supabase@3.1.0 test db
+      - name: Stop isolated Supabase stack
+        if: always()
+        run: npx --yes supabase@3.1.0 stop --no-backup
+
   secret-scan:
     name: secret-scan
     runs-on: ubuntu-latest
