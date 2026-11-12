@@ -1,0 +1,1 @@
+import {NextResponse} from 'next/server';import {createClient} from '@/lib/supabase/server';export async function POST(){const sb=await createClient();if(sb)await sb.auth.signOut();return NextResponse.redirect(new URL('/',process.env.APP_URL||'http://localhost:3000'))}
