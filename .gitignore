@@ -2,9 +2,12 @@ node_modules/
 .next/
 out/
 coverage/
+work/
 .env
 .env.*
 !.env.example
+!.env.development.example
+!.env.staging.example
 *.tsbuildinfo
 .DS_Store
 Thumbs.db

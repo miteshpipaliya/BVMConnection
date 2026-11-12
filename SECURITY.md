@@ -8,6 +8,8 @@
 - User-selected media previews use object URLs and are not uploaded. Object URLs are revoked when the preview changes or the composer unmounts.
 - Baseline security headers are configured in `next.config.js`; a strict CSP, upload pipeline, and application-level rate limiting are not yet implemented.
 - Protected pages validate Supabase claims and current email-confirmed user state in middleware. Production requests fail closed if Supabase is unconfigured; local demo mode remains available without credentials.
-- No service role key is used in application code.
+- No service role key is used in application code. Environment values in the committed templates are blank; `.env*` files are ignored except the three checked-in `.example` templates.
+- CI pins external Actions to commit SHAs and gives `GITHUB_TOKEN` only `contents: read`; Gitleaks scans full history on pushes and pull requests.
+- Local Gitleaks 8.30.1 scanned all three commits and the working tree with no findings. npm audit found six moderate transitive development-toolchain findings and no high/critical findings.
 
 Before launch: test cross-account access, block edge cases, policy recursion, message membership, admin elevation, storage, account deletion, request throttles and email enumeration behavior. Configure backup and restore drills.
