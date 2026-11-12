@@ -16,16 +16,20 @@ BVMConnection is a Next.js 15 and React 19 social networking frontend for the BV
 - Appropriate demo state persists in `localStorage`; uploaded previews use temporary object URLs that are revoked on cleanup.
 - The feed and interactive social features are clearly labeled as local demo data and are not synced to Supabase.
 - Supabase Auth registration, sign-in, email verification, SSR session cookies and the existing schema/security documentation are preserved. Firebase is not integrated.
+- Protected App Router sections validate Supabase SSR sessions and confirmed email when Supabase is configured. Login supports safe in-app return paths; password recovery and reset pages are included.
+- An incremental migration adds post-media and expiring story metadata, audience-aware media/story policies, fixes likes/comments reads to follow post visibility, restricts direct follows of private profiles, and limits the block lookup function.
+- Environment docs include Supabase publishable-key naming and server-only R2 placeholders. Full-project ESLint and TypeScript scripts are available.
 
 ## Boundaries and remaining work
 
 - Demo profiles, posts, conversations and event listings are examples. Do not enter real student data or treat demo actions as delivered, enforced or backend-persisted.
 - The current Reels and stories use preview interactions rather than a production media pipeline. Story uploads, realtime chat, push notification delivery, admin moderation, institutional verification, privacy enforcement and rich connection workflows need further implementation.
 - Supabase database schema is groundwork. The current demo social UI does not read or write social content in Supabase. Review RLS and configure approved email domains before using auth with real users.
+- Supabase connector/project credentials and a linked database are not available in this checkout. The migration has not been applied or tested against a live database. R2 upload/delivery, real social persistence, message workflows, moderation, PWA, and automated multi-user RLS/E2E coverage remain unimplemented.
 
 ## Checks
 
 - `npm test`
 - `npm run lint`
-- `npx tsc --noEmit`
+- `npm run typecheck`
 - `npm run build`
