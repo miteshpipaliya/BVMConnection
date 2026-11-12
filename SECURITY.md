@@ -4,7 +4,8 @@
 - Domain restrictions are validated server-side against `APPROVED_EMAIL_DOMAINS`.
 - Supabase Auth performs password storage and verification. Confirm email OTP/link expiry and rate limits in Auth settings.
 - PostgreSQL RLS is enabled for all tables in the initial migration. Treat policies as unreviewed until they pass adversarial tests against multiple accounts.
-- Public feed access requires authentication. Post text has bounded length. React escapes text output.
+- Social feed and account examples are local demo content. Post edits, reports, settings, messages and relationships are not transmitted to or enforced by a backend.
+- User-selected media previews use object URLs and are not uploaded. Object URLs are revoked when the preview changes or the composer unmounts.
 - Baseline security headers are configured in `next.config.js`; a strict CSP, upload pipeline, and application-level rate limiting are not yet implemented.
 - No service role key is used in application code.
 
