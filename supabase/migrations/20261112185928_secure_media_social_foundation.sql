@@ -1,4 +1,4 @@
--- Incremental security and media foundation. Apply after 0001_initial.sql.
+-- Incremental security and media foundation. Apply after foundation_initial.sql.
 -- Objects are private by default; no public bucket or client-chosen owner is used.
 
 create table public.post_media (
@@ -135,7 +135,7 @@ create policy "viewer records own view" on public.story_views
 -- Do not expose the SECURITY DEFINER block lookup to anonymous callers. Its
 -- fixed search_path is inherited from the original migration.
 create or replace function public.is_blocked_between(a uuid, b uuid)
-returns boolean language sql stable security definer set search_path = public as $$
+returns boolean language sql stable security definer set search_path = '' as $$
   select (select auth.uid()) is not null
     and ((select auth.uid()) = a or (select auth.uid()) = b)
     and exists (
@@ -145,4 +145,9 @@ returns boolean language sql stable security definer set search_path = public as
 $$;
 revoke all on function public.is_blocked_between(uuid, uuid) from public, anon;
 grant execute on function public.is_blocked_between(uuid, uuid) to authenticated;
+-- Default Supabase grants can expose newly created public tables to anon.
+-- Revoke anonymous access and grant authenticated access only where RLS applies.
+revoke all on all tables in schema public from anon;
+grant select, insert, update, delete on all tables in schema public to authenticated;
+revoke all on public.admin_roles, public.admin_audit_logs from anon, authenticated;
 -- R2 credentials belong exclusively in server runtime secrets, never in SQL.
