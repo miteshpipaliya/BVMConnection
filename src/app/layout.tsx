@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import './overrides.css';
-export const metadata: Metadata = { title: 'BVMConnection — One Campus. Thousands of Connections.', description: 'A student social network for connecting across the BVM campus.', applicationName: 'BVMConnection' };
-export const viewport: Viewport = { colorScheme: 'dark', themeColor: '#08090B' };
+import './campus.css';
+export const metadata: Metadata = { title: 'CampusConnect — Your Campus. Your People.', description: 'CampusConnect: the private BVM student social community for sharing moments, finding friends and building together.', applicationName: 'CampusConnect' };
+export const viewport: Viewport = { colorScheme: 'dark', themeColor: '#080a0e' };
 export default function RootLayout({ children }: Readonly<{children: React.ReactNode}>) { return <html lang="en"><body>{children}</body></html>; }
