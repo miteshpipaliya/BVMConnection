@@ -146,9 +146,9 @@ type ProfileSettings = { bio: string; branch: string; division: string; relation
 const initialProfile: ProfileSettings = { bio: 'Building things, meeting good people, making campus memories ✨', branch: 'Computer Engineering', division: 'A', relationship: 'Single', privacy: 'Campus' };
 export function CampusProfile({ username }: { username: string }) {
   const { posts } = useDemo();
-  const own = username === 'mitesh.patel';
+  const own = username === 'mitesh.pipaliya';
   const target = posts.find(post => post.handle === username);
-  const title = own ? 'Mitesh Patel' : (target?.name || username.replaceAll('.', ' '));
+  const title = own ? 'Mitesh Pipaliya' : (target?.name || username.replaceAll('.', ' '));
   const list = own ? posts.filter(post => post.own) : posts.filter(post => post.handle === username);
   const [profile, setProfile] = useState<ProfileSettings>(initialProfile);
   const [form, setForm] = useState<ProfileSettings>(initialProfile);
