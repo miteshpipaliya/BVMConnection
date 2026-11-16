@@ -16,7 +16,7 @@ const links: NavItem[] = [
   { label: 'Notifications', href: '/notifications', Icon: Heart },
   { label: 'Create', href: '/home?compose=1', Icon: PlusSquare },
   { label: 'Community', href: '/communities', Icon: UsersRound },
-  { label: 'Profile', href: '/profile/mitesh.patel', Icon: UserRound },
+  { label: 'Profile', href: '/profile/mitesh.pipaliya', Icon: UserRound },
 ];
 const mobileLabels = new Set(['Home', 'Search', 'Reels', 'Create', 'Community', 'Profile']);
 function activeLink(pathname: string, item: NavItem) {
@@ -48,7 +48,7 @@ function Nav({ pathname, mobile = false }: { pathname: string; mobile?: boolean 
 function Suggestions() {
   const { people, setPerson } = useDemo();
   return <aside className="cc-suggestions" aria-label="Suggested campus accounts">
-    <div className="cc-me"><span className="cc-person-avatar you">MP</span><div><Link href="/profile/mitesh.patel"><b>mitesh.patel</b></Link><small>Your campus profile · demo</small></div><Link href="/profile/mitesh.patel">View</Link></div>
+    <div className="cc-me"><span className="cc-person-avatar you">MP</span><div><Link href="/profile/mitesh.pipaliya"><b>mitesh.pipaliya</b></Link><small>Your campus profile · demo</small></div><Link href="/profile/mitesh.pipaliya">View</Link></div>
     <div className="cc-suggestion-heading"><b>Suggested for you</b><Link href="/connections">See all</Link></div>
     {people.slice(0,5).map((person,i) => <div className="cc-suggested" key={person.handle}>
       <span className={'cc-person-avatar hue-' + i} aria-hidden="true">{person.name.split(' ').map(x => x[0]).join('')}</span>
