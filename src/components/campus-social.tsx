@@ -101,7 +101,7 @@ function FeedPost({ post }: { post: DemoPost }) {
       <button aria-label="Post options" onClick={() => setMenu(!menu)}><MoreHorizontal size={20}/></button>
     </header>
     {menu && <div className="cc-post-comments"><button className="cc-post-subtle" onClick={() => { togglePost(post.id, 'saved'); setMenu(false); }}>{post.saved ? 'Remove from saved' : 'Save post'}</button>{' · '}<button className="cc-post-subtle" onClick={() => { handle(); setMenu(false); }}>Copy link</button>{post.own && <><span> · </span><button className="cc-post-subtle" onClick={() => removePost(post.id)}>Delete</button></>}{' · '}<button className="cc-post-subtle" onClick={() => { setNotice('Reporting is unavailable in this local demo.'); setMenu(false); }}>Report</button></div>}
-    <div className="cc-post-media">{media ? <Image src={media} alt={'Sample photo for ' + post.name + ' post'} width={950} height={1050} unoptimized/> : <div className="cc-photo-placeholder">{post.tag}<small>CAMPUSCONNECT · BVM</small></div>}</div>
+    <div className="cc-post-media">{media ? <Image src={media} alt={'Sample photo for ' + post.name + ' post'} width={950} height={1050} unoptimized/> : <div className="cc-photo-placeholder">{post.tag}<small>CAMPUSCULTURE · BVM</small></div>}</div>
     <div className="cc-post-actions">
       <button aria-label={post.liked ? 'Unlike' : 'Like'} className={post.liked ? 'liked' : ''} onClick={() => togglePost(post.id, 'liked')}><Heart size={25} fill={post.liked ? 'currentColor' : 'none'}/></button>
       <button aria-label="Show comments" onClick={() => setShowComments(!showComments)}><MessageCircle size={25}/></button>
@@ -220,13 +220,20 @@ export function CampusSearch({ initialQuery = '' }: { initialQuery?: string }) {
     {!q && <p className="cc-dialog-note">Sample content only. Real student search will require a protected Supabase query.</p>}
   </section>;
 }
-const reelExamples = [
-  { id:'r1', by:'campus.creatives', title:'Small moments, big memories ✨', src:'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4', poster:'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=500&q=70' },
-  { id:'r2', by:'build.with.bvm', title:'A little inspiration for builders ⚡', src:'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4', poster:'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=500&q=70' },
-  { id:'r3', by:'campus.moments', title:'Today’s campus mood 🌅', src:'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4', poster:'https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=500&q=70' },
-  { id:'r4', by:'campus.clubs', title:'Make something worth sharing 💫', src:'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4', poster:'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=500&q=70' },
-  { id:'r5', by:'cc.originals', title:'Five ideas, one creative campus 🎬', src:'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4', poster:'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=500&q=70' }
+const sampleVideos = [
+  'ForBiggerJoyrides','ForBiggerFun','ForBiggerEscapes','ForBiggerBlazes','ForBiggerMeltdowns',
+  'BigBuckBunny','ElephantsDream','ForBiggerJoyrides','ForBiggerFun','ForBiggerEscapes','ForBiggerBlazes','ForBiggerMeltdowns'
 ];
+const reelExamples = sampleVideos.map((clip, i) => ({
+  id: 'r' + (i + 1),
+  by: ['campus.creatives','build.with.bvm','campus.moments','campus.clubs'][i % 4],
+  title: ['Campus moments ✨','Build something amazing ⚡','Student life in motion 🌅','Create together 🎬'][i % 4],
+  src: 'https://storage.googleapis.com/gtv-videos-bucket/sample/' + clip + '.mp4',
+  poster: [
+    'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=500&q=70',
+    'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=500&q=70'
+  ][i % 2]
+}));
 function ReelItem({ item }: { item: typeof reelExamples[number] }) {
   const ref = useRef<HTMLVideoElement>(null);
   const [liked, setLiked] = useState(false);
@@ -234,25 +241,68 @@ function ReelItem({ item }: { item: typeof reelExamples[number] }) {
   const [muted, setMuted] = useState(true);
   const [playing, setPlaying] = useState(false);
   const [error, setError] = useState(false);
+  const [notice, setNotice] = useState('');
+  useEffect(() => {
+    const video = ref.current;
+    if (!video) return;
+    const observer = new IntersectionObserver(entries => {
+      if (entries[0]?.intersectionRatio && entries[0].intersectionRatio >= 0.7 && !document.hidden) {
+        // Browsers generally require a gesture before autoplay with sound.
+        video.muted = true;
+        setMuted(true);
+        void video.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+      } else { video.pause(); setPlaying(false); }
+    }, { threshold: [0, 0.7, 1] });
+    observer.observe(video);
+    const visibility = () => { if (document.hidden) { video.pause(); setPlaying(false); } };
+    document.addEventListener('visibilitychange', visibility);
+    return () => { observer.disconnect(); document.removeEventListener('visibilitychange', visibility); video.pause(); };
+  }, []);
   function togglePlay() {
     const video = ref.current;
     if (!video) return;
     if (video.paused) void video.play().then(() => setPlaying(true)).catch(() => setError(true));
     else { video.pause(); setPlaying(false); }
   }
-  function toggleMute() { if (ref.current) ref.current.muted = !muted; setMuted(!muted); }
-  return <article className="cc-reel">
-    <video ref={ref} src={item.src} poster={item.poster} preload="metadata" playsInline loop muted aria-label={item.title} onEnded={() => setPlaying(false)} onError={() => setError(true)} />
-    <div className="cc-reel-overlay"><b>@{item.by}</b><p>{item.title}</p><small><Music2 size={14}/> Original sample-video audio</small>{error && <p>Sample video unavailable. Try another reel.</p>}</div>
+  function toggleMute() {
+    const video = ref.current;
+    if (!video) return;
+    video.muted = !video.muted;
+    setMuted(video.muted);
+    if (video.paused) void video.play().then(() => setPlaying(true)).catch(() => setNotice('Tap play to start audio.'));
+  }
+  async function share() {
+    const url = window.location.origin + '/reels#' + item.id;
+    try {
+      if (navigator.share) await navigator.share({title:item.title,url});
+      else { await navigator.clipboard.writeText(url); setNotice('Reel link copied'); }
+    } catch { setNotice('Share cancelled or unavailable'); }
+  }
+  return <article className="cc-reel" id={item.id}>
+    <video ref={ref} src={item.src} poster={item.poster} preload="metadata" playsInline loop muted aria-label={item.title} onClick={togglePlay} onError={() => setError(true)} />
+    <div className="cc-reel-overlay"><b>@{item.by}</b><p>{item.title}</p><small><Music2 size={14}/> Sample video soundtrack</small>{error && <p>Sample video unavailable. Try another reel.</p>}{notice && <p role="status">{notice}</p>}</div>
     <div className="cc-reel-actions">
       <button onClick={togglePlay} aria-label={playing ? 'Pause reel' : 'Play reel'}>{playing ? <Pause/> : <Play/>}<small>{playing ? 'Pause' : 'Play'}</small></button>
-      <button onClick={toggleMute} aria-label={muted ? 'Unmute reel' : 'Mute reel'}>{muted ? <VolumeX/> : <Volume2/>}<small>Audio</small></button>
+      <button onClick={toggleMute} aria-label={muted ? 'Enable audio' : 'Mute reel'}>{muted ? <VolumeX/> : <Volume2/>}<small>{muted ? 'Sound on' : 'Mute'}</small></button>
       <button onClick={() => setLiked(!liked)} aria-label={liked ? 'Unlike reel' : 'Like reel'}><Heart fill={liked ? '#ff486f' : 'none'} color={liked ? '#ff486f' : 'white'}/><small>{liked ? 'Liked' : 'Like'}</small></button>
-      <button onClick={() => setSaved(!saved)} aria-label={saved ? 'Unsave reel' : 'Save reel'}><Bookmark fill={saved ? '#fff' : 'none'}/><small>Save</small></button>
-      <button onClick={() => navigator.clipboard?.writeText(window.location.origin + '/reels')} aria-label="Copy reels link"><Share2/><small>Share</small></button>
+      <button onClick={() => setSaved(!saved)} aria-label={saved ? 'Unsave reel' : 'Save reel'}><Bookmark fill={saved ? '#fff' : 'none'}/><small>{saved ? 'Saved' : 'Save'}</small></button>
+      <button onClick={() => void share()} aria-label="Share reel"><Share2/><small>Share</small></button>
     </div>
   </article>;
 }
 export function CampusReels() {
-  return <section className="cc-reel-page"><h1 className="cc-reel-title">Reels</h1><p className="cc-reel-demo">Five demonstration clips. These are generic sample videos, not BVM student uploads. Audio comes from the video file; a licensed song library is not connected.</p><div className="cc-reel-container">{reelExamples.map(item => <ReelItem key={item.id} item={item}/>)}</div></section>;
+  const [preview, setPreview] = useState('');
+  const [fileName, setFileName] = useState('');
+  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
+  return <section className="cc-reel-page">
+    <h1 className="cc-reel-title">Reels</h1>
+    <p className="cc-reel-demo">12 sample reels. Visible reels autoplay muted; tap Sound on to hear their soundtrack. Demo likes and saves are not synchronized with a server.</p>
+    <label className="cc-create-button">Preview your own reel <input type="file" accept="video/mp4,video/webm" style={{display:'block',maxWidth:240}} onChange={e => {
+      const file = e.target.files?.[0]; if (!file) return;
+      if (file.size > 25 * 1024 * 1024) { setFileName('Video must be under 25 MB for preview'); return; }
+      setPreview(URL.createObjectURL(file)); setFileName(file.name);
+    }}/></label>
+    {preview && <div className="cc-reel"><video src={preview} controls playsInline style={{width:'100%',maxHeight:560}}/><p>{fileName} · local preview only, not published</p></div>}
+    <div className="cc-reel-container">{reelExamples.map(item => <ReelItem key={item.id} item={item}/>)}</div>
+  </section>;
 }
