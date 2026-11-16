@@ -41,8 +41,8 @@ function StoryModal({ start, close }: { start: number; close: () => void }) {
   return <div className="cc-modal-backdrop" onClick={close} role="presentation">
     <section className="cc-story-viewer" role="dialog" aria-label="Demo stories" aria-modal="true" onClick={e => e.stopPropagation()}>
       <div className="cc-story-progress">{storyExamples.map((s, i) => <span key={s.name} className={i <= index ? 'done' : ''}/>)}</div>
-      <header><b>{storyExamples[index].name} · Sample story</b><button onClick={() => setPaused(!paused)} aria-label={paused ? 'Resume' : 'Pause'}>{paused ? <Play size={16}/> : <Pause size={16}/>}</button><button onClick={close} aria-label="Close stories"><X size={17}/></button></header>
-      <div className="cc-story-message">{storyExamples[index].text}</div>
+      <header><b>{(storyExamples[index] ?? storyExamples[0]!).name} · Sample story</b><button onClick={() => setPaused(!paused)} aria-label={paused ? 'Resume' : 'Pause'}>{paused ? <Play size={16}/> : <Pause size={16}/>}</button><button onClick={close} aria-label="Close stories"><X size={17}/></button></header>
+      <div className="cc-story-message">{(storyExamples[index] ?? storyExamples[0]!).text}</div>
       <div className="cc-story-controls"><button aria-label="Previous story" onClick={() => setIndex(Math.max(0, index - 1))}><ChevronLeft/></button><button aria-label="Next story" onClick={() => index === storyExamples.length - 1 ? close() : setIndex(index + 1)}><ChevronRight/></button></div>
     </section>
   </div>;
