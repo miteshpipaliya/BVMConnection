@@ -28,7 +28,7 @@ export function DemoProvider({children}:{children:ReactNode}){const [data,setDat
  useEffect(()=>{if(ready)localStorage.setItem('bvm-demo-v2',JSON.stringify(data));},[data,ready]);
  const update=useCallback((change:(current:DemoState)=>DemoState)=>setData(current=>{const next=change(current);try{if(ready)localStorage.setItem('bvm-demo-v2',JSON.stringify(next));}catch{}return next}),[ready]);
  const value=useMemo<Store>(()=>({...data,
-  addPost:(body,image)=>update(d=>({ ...d,draft:'',posts:[{id:`post-${Date.now()}`,name:'Mitesh Patel',handle:'mitesh.patel',dept:'Computer Engineering · 3rd year',time:'now',body,likes:0,replies:0,reposts:0,tag:'CAMPUS',liked:false,saved:false,following:true,comments:[],own:true,...(image?{image}:{})},...d.posts]})),
+  addPost:(body,image)=>update(d=>({ ...d,draft:'',posts:[{id:`post-${Date.now()}`,name:'Mitesh Pipaliya',handle:'mitesh.pipaliya',dept:'Computer Engineering · 3rd year',time:'now',body,likes:0,replies:0,reposts:0,tag:'CAMPUS',liked:false,saved:false,following:true,comments:[],own:true,...(image?{image}:{})},...d.posts]})),
   togglePost:(id,key)=>update(d=>({...d,posts:togglePostState(d.posts,id,key)})),
   comment:(id,body)=>update(d=>({...d,posts:d.posts.map(p=>p.id===id?{...p,comments:[...p.comments,body],replies:p.replies+1}:p)})),
   repost:id=>update(d=>({...d,posts:d.posts.map(p=>p.id===id?{...p,reposts:p.reposts+1}:p)})),
