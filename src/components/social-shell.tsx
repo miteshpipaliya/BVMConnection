@@ -27,9 +27,9 @@ function activeLink(pathname: string, item: NavItem) {
   return pathname === item.href || pathname.startsWith(item.href + '/');
 }
 function Brand({ compact = false }: { compact?: boolean }) {
-  return <Link href="/home" className={'cc-brand' + (compact ? ' cc-brand-mobile' : '')} aria-label="CampusConnect home">
-    <span className="cc-logo" aria-hidden="true">CC</span>
-    <span className="cc-wordmark">Campus<span>Connect</span><small>BVM CAMPUS</small></span>
+  return <Link href="/home" className={'cc-brand' + (compact ? ' cc-brand-mobile' : '')} aria-label="CampusCulture home">
+    <span className="cc-logo" aria-hidden="true"><span style={{fontWeight:900,letterSpacing:"-0.12em"}}>C<span style={{color:"#c4a0ff"}}>C</span></span></span>
+    <span className="cc-wordmark">Campus<span>Culture</span><small>BVM CAMPUS</small></span>
   </Link>;
 }
 function Nav({ pathname, mobile = false }: { pathname: string; mobile?: boolean }) {
@@ -58,7 +58,7 @@ function Suggestions() {
       </button>
     </div>)}
     <div className="cc-aside-links"><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/community-guidelines">Guidelines</Link><Link href="/settings">Settings</Link></div>
-    <p className="cc-copyright">© 2026 CAMPUSCONNECT · BVM</p>
+    <p className="cc-copyright">© 2026 CAMPUSCULTURE · BVM</p>
     <p className="cc-demo-disclaimer">Demo mode: interactions and sample identities are local, not live student data.</p>
   </aside>;
 }
