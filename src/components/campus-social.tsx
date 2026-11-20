@@ -81,7 +81,7 @@ function CreatePostDialog({ close }: { close: () => void }) {
       <label>Caption (required)<textarea maxLength={500} value={caption} onChange={e => setCaption(e.target.value)} placeholder="Write a caption…"/></label>
       <label>Audio <select disabled aria-label="Music library is not yet available"><option>Music library — awaiting licensed catalog</option></select></label>
       {error && <p role="alert" style={{color:'#ff9aa8'}}>{error}</p>}
-      <p className="cc-dialog-note">Local preview only. Photos and captions are stored in this browser, not uploaded to Supabase or Cloudflare R2.</p>
+      <p className="cc-dialog-note">Local preview only. Photos and captions stay in this browser. This demo has no database or online publishing.</p>
       <button className="cc-primary" disabled={!file || !caption.trim() || busy} onClick={publish}>{busy ? 'Preparing…' : 'Share demo post'}</button>
     </section>
   </div>;
@@ -101,7 +101,7 @@ function FeedPost({ post }: { post: DemoPost }) {
       <button aria-label="Post options" onClick={() => setMenu(!menu)}><MoreHorizontal size={20}/></button>
     </header>
     {menu && <div className="cc-post-comments"><button className="cc-post-subtle" onClick={() => { togglePost(post.id, 'saved'); setMenu(false); }}>{post.saved ? 'Remove from saved' : 'Save post'}</button>{' · '}<button className="cc-post-subtle" onClick={() => { handle(); setMenu(false); }}>Copy link</button>{post.own && <><span> · </span><button className="cc-post-subtle" onClick={() => removePost(post.id)}>Delete</button></>}{' · '}<button className="cc-post-subtle" onClick={() => { setNotice('Reporting is unavailable in this local demo.'); setMenu(false); }}>Report</button></div>}
-    <div className="cc-post-media">{media ? <Image src={media} alt={'Sample photo for ' + post.name + ' post'} width={950} height={1050} unoptimized/> : <div className="cc-photo-placeholder">{post.tag}<small>CAMPUSCULTURE · BVM</small></div>}</div>
+    <div className="cc-post-media">{media ? <Image src={media} alt={'Sample photo for ' + post.name + ' post'} width={950} height={1050} unoptimized/> : <div className="cc-photo-placeholder">{post.tag}<small>CAMPUSCONNECT · BVM</small></div>}</div>
     <div className="cc-post-actions">
       <button aria-label={post.liked ? 'Unlike' : 'Like'} className={post.liked ? 'liked' : ''} onClick={() => togglePost(post.id, 'liked')}><Heart size={25} fill={post.liked ? 'currentColor' : 'none'}/></button>
       <button aria-label="Show comments" onClick={() => setShowComments(!showComments)}><MessageCircle size={25}/></button>
@@ -123,6 +123,11 @@ export function CampusFeed() {
   const { posts } = useDemo();
   const [filter, setFilter] = useState('For you');
   const [story, setStory] = useState<number | null>(null);
+  const picker = useRef<HTMLInputElement>(null);
+  const [storyPreview, setStoryPreview] = useState('');
+  const [storyIsVideo, setStoryIsVideo] = useState(false);
+  const [storyError, setStoryError] = useState('');
+  useEffect(() => () => { if (storyPreview) URL.revokeObjectURL(storyPreview); }, [storyPreview]);
   const [composing, setComposing] = useState(false);
   const filtered = useMemo(() => selectFeed(posts, filter), [posts, filter]);
   useEffect(() => {
@@ -131,10 +136,13 @@ export function CampusFeed() {
   }, []);
   return <section className="cc-feed">
     <div className="cc-story-list" aria-label="Sample stories">
-      {storyExamples.map((s, index) => <button className="cc-story-button" key={s.name} onClick={() => setStory(index)}>
+      {storyExamples.map((s, index) => <button className="cc-story-button" key={s.name} onClick={() => index === 0 ? picker.current?.click() : setStory(index)}>
         <span className="cc-story-ring"><span>{index === 0 ? <Plus size={24}/> : s.short}</span></span><small>{s.name}</small>
       </button>)}
     </div>
+    <input ref={picker} type="file" accept="image/png,image/jpeg,image/webp,video/mp4,video/webm" hidden onChange={event=>{const file=event.target.files?.[0];if(!file)return;if(file.size>15*1024*1024){setStoryError('Story previews must be under 15 MB');return;}if(!['image/png','image/jpeg','image/webp','video/mp4','video/webm'].includes(file.type)){setStoryError('Choose a supported image or video');return;}setStoryError('');setStoryIsVideo(file.type.startsWith('video/'));setStoryPreview(URL.createObjectURL(file));event.target.value='';}}/>
+    {storyError && <p role="alert" className="cc-dialog-note">{storyError}</p>}
+    {storyPreview && <div className="cc-modal-backdrop" role="presentation" onClick={()=>setStoryPreview('')}><section className="cc-story-viewer" role="dialog" aria-modal="true" aria-label="Your story preview" onClick={e=>e.stopPropagation()}><button className="cc-story-close" onClick={()=>setStoryPreview('')} aria-label="Close story preview"><X/></button><h2>Your story · local preview</h2>{storyIsVideo?<video controls autoPlay playsInline src={storyPreview} style={{maxWidth:'100%',maxHeight:'72vh'}}/>:<Image src={storyPreview} alt="Your selected story" width={640} height={960} unoptimized style={{maxWidth:'100%',height:'auto',maxHeight:'72vh',objectFit:'contain'}}/>}<p>No upload or database connection.</p></section></div>}
     <div className="cc-feed-header"><div><strong>Campus feed</strong><small> · Preview</small></div><button className="cc-create-button" onClick={() => setComposing(true)}><Plus size={16}/> Create</button></div>
     <div className="cc-feed-filter">{['For you','Following','Latest','Campus'].map(tab => <button key={tab} className={filter === tab ? 'selected' : ''} onClick={() => setFilter(tab)}>{tab}</button>)}</div>
     {filtered.length ? filtered.map(post => <FeedPost key={post.id} post={post}/>) : <div className="cc-profile-empty"><h2>No posts here yet</h2><p>Try another feed filter or create your first campus moment.</p></div>}
@@ -181,14 +189,16 @@ export function CampusProfile({ username }: { username: string }) {
         {own && <p className="cc-profile-private"><LockKeyhole size={13}/> {profile.privacy} account · demo preference only</p>}
       </div>
     </div>
-    {statInfo && <p className="cc-dialog-note">Follower counts are sample data. Live followers and following require Supabase integration.</p>}
-    <div className="cc-profile-tabs">{[['Posts', Grid3X3],['Reels', Clapperboard],['Tagged', Camera]].map(([label, Icon]) => {
+    {statInfo && <p className="cc-dialog-note">Follower counts are sample data. Follower counts are sample data; no student records are connected.</p>}
+    <div className="cc-profile-tabs">{[['Posts', Grid3X3],['Reels', Clapperboard],['Tagged', Camera],['Saved', Bookmark]].map(([label, Icon]) => {
       const Comp = Icon as typeof Grid3X3;
       return <button key={label as string} className={tab === label ? 'selected' : ''} onClick={() => setTab(label as string)}><Comp size={14}/>{label as string}</button>;
     })}</div>
     {tab === 'Posts' && (list.length ? <div className="cc-profile-grid">{list.map(post => <Link key={post.id} href={'/posts/' + post.id}>{mediaFor(post) ? <Image src={mediaFor(post)} width={350} height={350} alt="Campus post" unoptimized/> : <span>{post.tag}</span>}</Link>)}</div> : <div className="cc-profile-empty"><Camera size={44}/><h2>Share your first photo</h2><p>Your campus posts will appear here.</p>{own && <Link href="/home?compose=1">Create a post</Link>}</div>)}
     {tab === 'Reels' && <div className="cc-profile-empty"><Clapperboard size={42}/><h2>Reels</h2><p>Campus reels will appear here when publishing is connected.</p><Link href="/reels">Explore sample reels</Link></div>}
     {tab === 'Tagged' && <div className="cc-profile-empty"><h2>Tagged posts</h2><p>Nothing to show in this local demo yet.</p></div>}
+    {tab === 'Saved' && (own ? <div className="cc-profile-grid">{posts.filter(post => post.saved).map(post => <Link key={post.id} href={'/posts/' + post.id}>{mediaFor(post) ? <Image src={mediaFor(post)} width={350} height={350} alt="Saved campus post" unoptimized/> : <span>{post.tag}</span>}</Link>)}</div> : <p className="cc-dialog-note">Saved items are visible only on your own demo profile.</p>)}
+    {tab === 'Saved' && own && !posts.some(post => post.saved) && <p className="cc-dialog-note">Save a post to find it here.</p>}
     {edit && <div className="cc-modal-backdrop" onClick={() => setEdit(false)} role="presentation"><section className="cc-dialog" role="dialog" aria-label="Edit demo profile" aria-modal="true" onClick={e => e.stopPropagation()}>
       <header><h2>Edit profile</h2><button onClick={() => setEdit(false)} aria-label="Close editor"><X/></button></header>
       <label>Bio<textarea value={form.bio} maxLength={150} onChange={e => setForm({ ...form, bio: e.target.value })}/></label>
@@ -208,8 +218,18 @@ export function CampusSearch({ initialQuery = '' }: { initialQuery?: string }) {
   const matchingPeople = people.filter(p => (p.name + ' ' + p.handle + ' ' + p.dept).toLowerCase().includes(q));
   const matchingPosts = posts.filter(p => (p.name + ' ' + p.body + ' ' + p.tag).toLowerCase().includes(q));
   const matchingCommunities = communities.filter(c => (c.name + ' ' + c.description).toLowerCase().includes(q));
+  const [classBranch, setClassBranch] = useState('Computer Engineering');
+  const [classDivision, setClassDivision] = useState('4');
+  const demoStudents = [
+    {name:'Campus Demo One',handle:'campus.demo.one',branch:'Computer Engineering',division:'4'},
+    {name:'Campus Demo Two',handle:'campus.demo.two',branch:'Computer Engineering',division:'4'},
+    {name:'Campus Demo Three',handle:'campus.demo.three',branch:'Computer Engineering',division:'2'},
+    {name:'Campus Demo Four',handle:'campus.demo.four',branch:'Mechanical Engineering',division:'4'},
+  ];
+  const matches = demoStudents.filter(p => p.branch.trim().toLowerCase() === classBranch.trim().toLowerCase() && p.division.trim().toLowerCase() === classDivision.trim().toLowerCase());
   return <section className="cc-search-page">
     <h1 className="cc-search-header">Search</h1>
+    <div className="cc-classmate-finder"><h2>Find your classmates</h2><p>Match a branch and division against sample profiles. Real classmate matching needs verified student accounts.</p><div className="cc-classmate-form"><label>Branch<input value={classBranch} maxLength={64} onChange={event=>setClassBranch(event.target.value)} aria-label="Classmate branch"/></label><label>Division<input value={classDivision} maxLength={20} onChange={event=>setClassDivision(event.target.value)} aria-label="Classmate division"/></label></div><div className="cc-search-results">{matches.length?matches.map(p=><Link href={'/profile/'+p.handle} className="cc-search-result" key={p.handle}><span className="cc-person-avatar">{initials(p.name)}</span><div><b>{p.name}</b><small>{p.branch} · Division {p.division} · sample account</small></div></Link>):<p className="cc-dialog-note">No matching sample classmates.</p>}</div></div>
     <div className="cc-search-field"><Search size={20}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search campus, accounts, posts…" aria-label="Search campus content"/></div>
     {q && <><h2 className="cc-search-section-title">Accounts</h2><div className="cc-search-results">{matchingPeople.length ? matchingPeople.map(p => <Link href={'/profile/' + p.handle} className="cc-search-result" key={p.handle}><span className="cc-person-avatar">{initials(p.name)}</span><div><b>{p.handle}</b><small>{p.name} · {p.dept}</small></div></Link>) : <p className="cc-dialog-note">No matching demo accounts.</p>}</div>
       <h2 className="cc-search-section-title">Community</h2><div className="cc-search-results">{matchingCommunities.map(c => <Link className="cc-search-result" key={c.slug} href={'/communities/' + c.slug}><span className="cc-person-avatar">{c.icon}</span><div><b>{c.name}</b><small>{c.description}</small></div></Link>)}</div>
@@ -217,7 +237,7 @@ export function CampusSearch({ initialQuery = '' }: { initialQuery?: string }) {
     <h2 className="cc-search-section-title">{q ? 'Matching posts' : 'Explore campus posts'}</h2>
     <div className="cc-explore-grid">{matchingPosts.map(post => <Link key={post.id} href={'/posts/' + post.id}>{mediaFor(post) ? <Image src={mediaFor(post)} alt={'Sample post by ' + post.name} width={300} height={300} unoptimized/> : <span>{post.tag}<br/>{post.name}</span>}</Link>)}</div>
     {matchingPosts.length === 0 && <p className="cc-dialog-note">No demo posts match this search.</p>}
-    {!q && <p className="cc-dialog-note">Sample content only. Real student search will require a protected Supabase query.</p>}
+    {!q && <p className="cc-dialog-note">Sample content only. This frontend is not connected to a student database.</p>}
   </section>;
 }
 const sampleVideos = [
@@ -274,7 +294,7 @@ function ReelItem({ item }: { item: typeof reelExamples[number] }) {
   async function share() {
     const url = window.location.origin + '/reels#' + item.id;
     try {
-      if (navigator.share) await navigator.share({ title: item.title ?? 'CampusCulture reel', url });
+      if (navigator.share) await navigator.share({ title: item.title ?? 'CampusConnect reel', url });
       else { await navigator.clipboard.writeText(url); setNotice('Reel link copied'); }
     } catch { setNotice('Share cancelled or unavailable'); }
   }
